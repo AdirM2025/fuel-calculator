@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מחשבון עלות דלק 🚗</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f2eb;
+    --surface: #ffffff;
+    --surface2: #f0ede5;
+    --border: #ddd8cc;
+    --accent: #e85d04;
+    --accent2: #f48c06;
+    --text: #1a1a18;
+    --muted: #8a8478;
+    --shadow: rgba(0,0,0,0.08);
+    --shadow-lg: rgba(0,0,0,0.14);
+  }
+
+  body {
+    font-family: 'Heebo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 32px 16px 60px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Road stripe decoration */
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 6px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--accent) 0px, var(--accent) 40px,
+      transparent 40px, transparent 60px
+    );
+  }
+
+  .container {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+    animation: slideDown .5s cubic-bezier(.34,1.56,.64,1);
+  }
+
+  .header-icon {
+    font-size: 56px;
+    display: block;
+    margin-bottom: 10px;
+    filter: drop-shadow(2px 4px 0px rgba(232,93,4,0.3));
+    animation: bounce 2.5s ease-in-out infinite;
+  }
+
+  .header h1 {
+    font-size: 30px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .header h1 span {
+    color: var(--accent);
+  }
+
+  .header p {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 400;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 4px 20px var(--shadow);
+    margin-bottom: 14px;
+    position: relative;
+  }
+
+  .card:first-of-type {
+    z-index: 100;
+  }
+
+  .card:nth-child(2) { animation: slideUp .4s .05s both; }
+  .card:nth-child(3) { animation: slideUp .4s .12s both; }
+  .card:nth-child(4) { animation: slideUp .4s .18s both; }
+
+  .card-title {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Route inputs */
+  .route-wrap { position: relative; }
+
+  .connector {
+    position: absolute;
+    right: 11px;
+    top: 46px;
+    bottom: 46px;
+    width: 2px;
+    background: repeating-linear-gradient(
+      to bottom,
+      var(--accent) 0px, var(--accent) 6px,
+      transparent 6px, transparent 10px
+    );
+    opacity: 0.5;
+  }
+
+  .field-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+
+  .field-row:last-child { margin-bottom: 0; }
+
+  .dot {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2.5px solid var(--accent);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 900;
+    color: var(--accent);
+    margin-top: 27px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .dot.dest {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  .field-wrap { flex: 1; position: relative; }
+
+  .field-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    color: var(--muted);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+  }
+
+  .field-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 15px;
+    font-family: 'Heebo', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+    direction: rtl;
+  }
+
+  .field-input:focus {
+    border-color: var(--accent);
+    background: var(--surface);
+    box-shadow: 0 0 0 3px rgba(232,93,4,0.1);
+  }
+
+  .field-input::placeholder { color: #bbb5aa; }
+
+  /* Dropdown */
+  .dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0; left: 0;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 13px;
+    z-index: 9999;
+    overflow: hidden;
+    box-shadow: 0 12px 30px var(--shadow-lg);
+    display: none;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .dropdown.open { display: block; }
+
+  .dd-item {
+    padding: 11px 15px;
+    font-size: 13px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+    line-height: 1.4;
+  }
+
+  .dd-item:last-child { border-bottom: none; }
+  .dd-item:hover { background: #fff6f0; }
+
+  .dd-item .dd-main { font-weight: 500; color: var(--text); }
+  .dd-item .dd-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .dd-loading {
+    padding: 14px 15px;
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* Settings */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .setting label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .num-row {
+    display: flex;
+    align-items: center;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+
+  .num-row:focus-within { border-color: var(--accent); }
+
+  .num-btn {
+    width: 36px;
+    height: 42px;
+    border: none;
+    background: transparent;
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background .15s, color .15s;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .num-btn:hover { background: var(--border); color: var(--text); }
+
+  .num-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 6px 4px;
+    font-family: 'Heebo', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    outline: none;
+    text-align: center;
+    width: 0;
+    -moz-appearance: textfield;
+  }
+
+  .num-input::-webkit-inner-spin-button,
+  .num-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .unit-tag {
+    font-size: 10px;
+    color: var(--muted);
+    padding: 0 10px 0 2px;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+
+  /* Button */
+  .go-btn {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 16px;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Heebo', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .2s, background .2s;
+    box-shadow: 0 6px 20px rgba(232,93,4,0.35);
+    position: relative;
+    overflow: hidden;
+    letter-spacing: .3px;
+    animation: slideUp .4s .25s both;
+  }
+
+  .go-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .go-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px rgba(232,93,4,0.45);
+    background: #d44f00;
+  }
+
+  .go-btn:active:not(:disabled) { transform: translateY(0); }
+
+  .go-btn:disabled {
+    opacity: .65;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 18px; height: 18px;
+    border: 2.5px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+
+  /* Error */
+  .err-box {
+    background: #fff0ee;
+    border: 1.5px solid #ffd0c8;
+    border-radius: 12px;
+    padding: 13px 16px;
+    color: #c0392b;
+    font-size: 13px;
+    margin-top: 12px;
+    display: none;
+    line-height: 1.5;
+  }
+  .err-box.show { display: block; }
+
+  /* Result */
+  .result-box {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 4px 20px var(--shadow);
+    margin-top: 14px;
+    display: none;
+    animation: popIn .4s cubic-bezier(.34,1.56,.64,1);
+  }
+
+  .result-box.show { display: block; }
+
+  .result-route {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 18px;
+    border-bottom: 1.5px dashed var(--border);
+    font-size: 13px;
+  }
+
+  .result-route-icon { font-size: 24px; flex-shrink: 0; }
+
+  .result-route-text { flex: 1; line-height: 1.7; }
+  .result-route-text strong { font-weight: 700; color: var(--text); }
+  .result-route-text span { color: var(--muted); }
+
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  .stat {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 8px 14px;
+    text-align: center;
+  }
+
+  .stat .s-icon { font-size: 22px; margin-bottom: 8px; line-height: 1; }
+  .stat .s-val {
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 5px;
+    color: var(--text);
+  }
+  .stat .s-unit { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: .5px; text-transform: uppercase; }
+
+  .stat.highlight .s-val {
+    font-size: 26px;
+    color: var(--accent);
+  }
+
+  .result-note {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 14px;
+    line-height: 1.6;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .tag {
+    display: inline-block;
+    background: #fff6f0;
+    border: 1px solid #ffd4bc;
+    color: var(--accent);
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 99px;
+    padding: 2px 8px;
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-18px); } to { opacity: 1; transform: none; } }
+  @keyframes slideUp   { from { opacity: 0; transform: translateY(18px);  } to { opacity: 1; transform: none; } }
+  @keyframes popIn     { from { opacity: 0; transform: scale(.93); } to { opacity: 1; transform: scale(1); } }
+  @keyframes spin      { to { transform: rotate(360deg); } }
+  @keyframes bounce {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <span class="header-icon">🚗</span>
+    <h1>מחשבון <span>עלות דלק</span></h1>
+    <p>הכנסי כתובות מדויקות — תקבלי חישוב אמיתי</p>
+  </div>
+
+  <!-- Route -->
+  <div class="card">
+    <div class="card-title">📍 מסלול הנסיעה</div>
+    <div class="route-wrap">
+      <div class="connector"></div>
+
+      <div class="field-row">
+        <div class="dot">A</div>
+        <div class="field-wrap">
+          <span class="field-label">מאת — נקודת המוצא</span>
+          <input class="field-input" id="inp-from" type="text"
+            placeholder="לדוגמה: נחל נעמן 15, קריית גת" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="dot dest">B</div>
+        <div class="field-wrap">
+          <span class="field-label">יעד — לאן מגיעים</span>
+          <input class="field-input" id="inp-to" type="text"
+            placeholder="לדוגמה: משעול האתרוג 6, קריית גת" autocomplete="off" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div class="card">
+    <div class="card-title">⚙️ הגדרות הרכב</div>
+    <div class="settings-grid">
+
+      <div class="setting">
+        <label>צריכת דלק</label>
+        <div class="num-row">
+          <button class="num-btn" onclick="step('consumption',-0.5)">−</button>
+          <input class="num-input" id="consumption" type="number" value="8" min="1" max="30" step="0.5">
+          <span class="unit-tag">ל׳/100ק״מ</span>
+          <button class="num-btn" onclick="step('consumption',0.5)">+</button>
+        </div>
+      </div>
+
+      <div class="setting">
+        <label>מחיר לליטר</label>
+        <div class="num-row">
+          <button class="num-btn" onclick="step('price',-0.05)">−</button>
+          <input class="num-input" id="price" type="number" value="6.85" min="1" max="20" step="0.05">
+          <span class="unit-tag">₪/ליטר</span>
+          <button class="num-btn" onclick="step('price',0.05)">+</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Go button -->
+  <button class="go-btn" id="go-btn" onclick="calculate()">
+    חשבי לי! ⛽
+  </button>
+
+  <div class="err-box" id="err-box"></div>
+
+  <!-- Result -->
+  <div class="result-box" id="result-box">
+    <div class="result-route">
+      <div class="result-route-icon">🗺️</div>
+      <div class="result-route-text" id="result-route-text"></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat">
+        <div class="s-icon">📏</div>
+        <div class="s-val" id="r-dist">—</div>
+        <div class="s-unit">ק״מ</div>
+      </div>
+      <div class="stat">
+        <div class="s-icon">⛽</div>
+        <div class="s-val" id="r-fuel">—</div>
+        <div class="s-unit">ליטרים</div>
+      </div>
+      <div class="stat highlight">
+        <div class="s-icon">💰</div>
+        <div class="s-val" id="r-cost">—</div>
+        <div class="s-unit">₪ סה״כ</div>
+      </div>
+    </div>
+    <div class="result-note" id="result-note"></div>
+  </div>
+
+</div>
+
+<script>
+// ─── Stepper ───────────────────────────────────────────────
+function step(id, delta) {
+  const el = document.getElementById(id);
+  const v  = parseFloat(el.value) + delta;
+  const mn = parseFloat(el.min), mx = parseFloat(el.max);
+  el.value = Math.min(mx, Math.max(mn, Math.round(v * 100) / 100));
+}
+
+// ─── Autocomplete via Nominatim ────────────────────────────
+const cache = {};
+let timers  = {};
+const chosen = { from: null, to: null };
+
+// Single shared dropdown appended to body
+const globalDD = document.createElement('div');
+globalDD.className = 'dropdown';
+document.body.appendChild(globalDD);
+let activeKey = null;
+let activeInp = null;
+
+function positionDD(inp) {
+  const r = inp.getBoundingClientRect();
+  globalDD.style.position = 'fixed';
+  globalDD.style.top      = (r.bottom + 4) + 'px';
+  globalDD.style.right    = (window.innerWidth - r.right) + 'px';
+  globalDD.style.left     = r.left + 'px';
+  globalDD.style.width    = r.width + 'px';
+}
+
+function closeDD() {
+  globalDD.classList.remove('open');
+  activeKey = null;
+  activeInp = null;
+}
+
+async function suggest(q) {
+  if (cache[q]) return cache[q];
+  const url = `https://nominatim.openstreetmap.org/search?` +
+    new URLSearchParams({ q, format: 'json', limit: 6,
+      'accept-language': 'he', countrycodes: 'il' });
+  const r = await fetch(url, { headers: { 'Accept-Language': 'he' } });
+  const d = await r.json();
+  cache[q] = d;
+  return d;
+}
+
+function setupAC(inpId, key) {
+  const inp = document.getElementById(inpId);
+
+  inp.addEventListener('input', () => {
+    chosen[key] = null;
+    const q = inp.value.trim();
+    clearTimeout(timers[key]);
+    if (q.length < 3) { closeDD(); return; }
+
+    activeKey = key;
+    activeInp = inp;
+    positionDD(inp);
+    globalDD.innerHTML = '<div class="dd-loading">מחפש...</div>';
+    globalDD.classList.add('open');
+
+    timers[key] = setTimeout(async () => {
+      if (activeKey !== key) return;
+      try {
+        const results = await suggest(q);
+        if (activeKey !== key) return;
+        globalDD.innerHTML = '';
+        if (!results.length) { closeDD(); return; }
+        results.forEach(r => {
+          const parts = r.display_name.split(',');
+          const main  = parts.slice(0, 2).join(',').trim();
+          const sub   = parts.slice(2, 4).join(',').trim();
+          const item  = document.createElement('div');
+          item.className = 'dd-item';
+          item.innerHTML = `<div class="dd-main">${main}</div><div class="dd-sub">${sub}</div>`;
+          item.addEventListener('mousedown', e => {
+            e.preventDefault();
+            inp.value   = main;
+            chosen[key] = { lat: parseFloat(r.lat), lon: parseFloat(r.lon), label: main };
+            closeDD();
+          });
+          globalDD.appendChild(item);
+        });
+      } catch { closeDD(); }
+    }, 380);
+  });
+
+  inp.addEventListener('blur',  () => setTimeout(() => { if (activeKey === key) closeDD(); }, 200));
+  inp.addEventListener('focus', () => {
+    if (globalDD.children.length > 0 && activeKey === key) {
+      positionDD(inp);
+      globalDD.classList.add('open');
+    }
+  });
+
+  // Reposition on scroll/resize
+  window.addEventListener('scroll', () => { if (activeInp === inp) positionDD(inp); }, true);
+  window.addEventListener('resize', () => { if (activeInp === inp) positionDD(inp); });
+}
+
+setupAC('inp-from', 'from');
+setupAC('inp-to',   'to');
+
+// ─── Routing via OSRM ──────────────────────────────────────
+async function getRoute(from, to) {
+  const url = `https://router.project-osrm.org/route/v1/driving/` +
+    `${from.lon},${from.lat};${to.lon},${to.lat}?overview=false&steps=false`;
+  const r = await fetch(url);
+  const d = await r.json();
+  if (d.code !== 'Ok' || !d.routes?.length) throw new Error('לא נמצא מסלול');
+  return {
+    distance: d.routes[0].distance / 1000,   // km
+    duration: d.routes[0].duration / 60       // min
+  };
+}
+
+// ─── Geocode if user didn't pick from dropdown ─────────────
+async function geocode(q) {
+  const r = await suggest(q);
+  if (!r.length) return null;
+  return { lat: parseFloat(r[0].lat), lon: parseFloat(r[0].lon),
+           label: r[0].display_name.split(',').slice(0,2).join(',').trim() };
+}
+
+// ─── Main calculate ────────────────────────────────────────
+async function calculate() {
+  const errEl = document.getElementById('err-box');
+  const resEl = document.getElementById('result-box');
+  const btn   = document.getElementById('go-btn');
+
+  errEl.classList.remove('show');
+  resEl.classList.remove('show');
+
+  const fromVal = document.getElementById('inp-from').value.trim();
+  const toVal   = document.getElementById('inp-to').value.trim();
+  const cons    = parseFloat(document.getElementById('consumption').value);
+  const price   = parseFloat(document.getElementById('price').value);
+
+  if (!fromVal || !toVal) { showErr('❗ אנא הכניסי כתובת מוצא וכתובת יעד.'); return; }
+  if (!cons || !price)    { showErr('❗ אנא הכניסי ערכים תקינים לרכב.'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> מחשב מסלול...';
+
+  try {
+    let fromCoord = chosen.from || await geocode(fromVal);
+    let toCoord   = chosen.to   || await geocode(toVal);
+
+    if (!fromCoord) throw new Error(`לא נמצאה כתובת המוצא: "${fromVal}". נסי להיות יותר מדויקת.`);
+    if (!toCoord)   throw new Error(`לא נמצאה כתובת היעד: "${toVal}". נסי להיות יותר מדויקת.`);
+
+    const route   = await getRoute(fromCoord, toCoord);
+    const distKm  = route.distance;
+    const durMin  = route.duration;
+    const fuelL   = (distKm * cons) / 100;
+    const total   = fuelL * price;
+
+    // Format duration
+    const h = Math.floor(durMin / 60);
+    const m = Math.round(durMin % 60);
+    const durStr = h > 0 ? `${h} שעות ${m} דקות` : `${m} דקות`;
+
+    document.getElementById('result-route-text').innerHTML =
+      `<strong>${fromCoord.label}</strong><br>` +
+      `<span>↓ ${distKm.toFixed(1)} ק״מ · ${durStr}</span><br>` +
+      `<strong>${toCoord.label}</strong>`;
+
+    document.getElementById('r-dist').textContent = distKm.toFixed(1);
+    document.getElementById('r-fuel').textContent = fuelL.toFixed(1);
+    document.getElementById('r-cost').textContent = total.toFixed(2);
+
+    document.getElementById('result-note').innerHTML =
+      `<span class="tag">✓ מסלול אמיתי</span> חושב לפי ` +
+      `${cons} ל׳/100ק״מ × ${distKm.toFixed(1)} ק״מ × ₪${price.toFixed(2)}/ל׳`;
+
+    resEl.classList.add('show');
+    resEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  } catch(err) {
+    showErr('⚠️ ' + (err.message || 'שגיאה בלתי צפויה. בדקי חיבור לאינטרנט ונסי שוב.'));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'חשבי לי! ⛽';
+  }
+}
+
+function showErr(msg) {
+  const el = document.getElementById('err-box');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter') calculate(); });
+</script>
+</body>
+</html>
